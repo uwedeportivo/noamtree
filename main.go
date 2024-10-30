@@ -1,25 +1,33 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"os"
 
 	"noamtree/noam"
 )
 
-const (
-	example = `[ CP [C that] [TP [NP They] [VP [V know] [CP [C that] [TP [NP she]
-               [VP [V knows] [CP [ C that] [TP [NP you] [VP [V know] [CP [C that]
-               [TP [NP I] [VP [V hate] [NP war] ] ]]]]]]]]]]]`
-	example2 = `[CP foo]`
-	example3 = `[CP [C that]]`
-	example4 = `[CP [C that] [C this]]`
-)
+var input = flag.String("input", "", "filename of file to convert")
 
 func main() {
-	res, err := noam.Parse("example.noam", []byte(example))
+	flag.Parse()
+
+	f, err := os.Open(*input)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	node := res.(*noam.Node)
-	fmt.Println(node)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(f)
+	res, err := noam.ParseReader(*input, f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	nodes := res.([]*noam.Node)
+	fmt.Println(nodes[0])
 }

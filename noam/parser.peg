@@ -2,30 +2,37 @@
 package noam
 }
 
-Input <- node:Node EOF {
-  return node, nil
+Input <- root:Object EOF {
+  return root, nil
 }
 
-Node <- _ "[" _ head:Identifier _ body:Body _ "]" _ {
-  node := body.(*Node)
-  node.Head = head.(string)
-  return node, nil
+Value <- leaf:String {
+   return leaf.(string), nil
+} / subtree:Object {
+   return subtree, nil
 }
 
-Body <- leaf:Identifier {
-   return &Node {
-      Leaf: leaf.(string),
-   }, nil
-} / children:Node+ {
-   return &Node {
-         Children: makeChildren(children),
-   }, nil
+Pair <- head:String _ ':' _ value:Value {
+    return makeNode(head, value)
 }
 
-Identifier <- [a-zA-Z_] [a-zA-Z0-9_]* {
-  return string(c.text), nil
+Object ← _ '{' _ first:Pair rest:( _ ',' _ Pair )*  _ '}' _ {
+    return makeChildren(first, rest)
 }
-  
+
+String ← '"' ( !EscapedChar . / '\\' EscapeSequence )* '"' {
+    c.text = bytes.Replace(c.text, []byte(`\/`), []byte(`/`), -1)
+    return strconv.Unquote(string(c.text))
+}
+
+EscapedChar ← [\x00-\x1f"\\]
+
+EscapeSequence ← SingleCharEscape / UnicodeEscape
+
+SingleCharEscape ← ["\\/bfnrt]
+
+UnicodeEscape ← 'u' HexDigit HexDigit HexDigit HexDigit
+
 _ "whitespace" <- [ \n\t\r]*
 
 EOF <- !.

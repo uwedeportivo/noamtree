@@ -1,6 +1,17 @@
 package noam
 
-import "strings"
+import "C"
+import (
+	"fmt"
+	"strings"
+)
+
+func toAnySlice(v any) []any {
+	if v == nil {
+		return nil
+	}
+	return v.([]any)
+}
 
 type Node struct {
 	Head     string
@@ -25,12 +36,29 @@ func (n *Node) String() string {
 	return sb.String()
 }
 
-func makeChildren(v any) []*Node {
-	cs := v.([]any)
-	var result []*Node
-	for _, c := range cs {
-		child := c.(*Node)
-		result = append(result, child)
+func makeNode(head any, value any) (*Node, error) {
+	node := &Node{
+		Head: head.(string),
 	}
-	return result
+	switch v := value.(type) {
+	default:
+		return nil, fmt.Errorf("unknown type %T", v)
+	case string:
+		node.Leaf = v
+	case []*Node:
+		node.Children = v
+	}
+	return node, nil
+}
+
+func makeChildren(first any, rest any) ([]*Node, error) {
+	pairs := toAnySlice(rest)
+	var rs []*Node
+
+	rs = append(rs, first.(*Node))
+	for _, pair := range pairs {
+		ps := toAnySlice(pair)
+		rs = append(rs, ps[3].(*Node))
+	}
+	return rs, nil
 }
